@@ -1,0 +1,14 @@
+{
+    "id": "{C1931337-4B5F-4B19-9680-20B23BBF691A}",
+    "name": "HmIP Tuerschloss",
+    "type": 3,
+    "vendor": "eQ-3 Homematic IP",
+    "aliases": [
+        "HmIP Türschloss (HCU)"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "DLD",
+    "url": "https://github.com/cfaf2002/HmIPTuerschloss_Symcon/blob/main/Tuerschloss/README.md"
+}

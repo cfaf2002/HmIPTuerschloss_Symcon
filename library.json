@@ -1,0 +1,12 @@
+{
+    "id": "{FACDDF82-B405-42B9-BC5F-AD6695AFFE54}",
+    "name": "HmIP Türschloss",
+    "author": "Armin Frohwerk",
+    "url": "https://github.com/cfaf2002/HmIPTuerschloss_Symcon",
+    "compatibility": {
+        "version": "8.1"
+    },
+    "version": "1.0",
+    "build": 1,
+    "date": 1793608800
+}
