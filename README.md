@@ -2,11 +2,13 @@
 
 [![IP-Symcon ab 8.1](https://img.shields.io/badge/IP--Symcon-ab_8.1-0b6fb3.svg)](https://www.symcon.de)
 [![Optimiert für Symcon 9.0](https://img.shields.io/badge/optimiert_f%C3%BCr-Symcon_9.0-0b6fb3.svg)](https://www.symcon.de/de/service/dokumentation/installation/migrationen/v81-v90-q1-2026/)
-[![Modul-Version 2.0 (Build 2)](https://img.shields.io/badge/Modul--Version-2.0_(Build_2)-informational.svg)](library.json)
+[![Modul-Version 2.1 (Build 3)](https://img.shields.io/badge/Modul--Version-2.1_(Build_3)-informational.svg)](library.json)
 [![Tests](https://github.com/cfaf2002/HmIPTuerschloss_Symcon/actions/workflows/tests.yml/badge.svg)](https://github.com/cfaf2002/HmIPTuerschloss_Symcon/actions/workflows/tests.yml)
 [![PHP 8.3 und 8.5](https://img.shields.io/badge/PHP-8.3_%7C_8.5-777bb4.svg?logo=php&logoColor=white)](https://www.php.net)
 [![SDK: IPSModuleStrict](https://img.shields.io/badge/SDK-IPSModuleStrict-success.svg)](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/module/)
 [![Variablen: Darstellungen](https://img.shields.io/badge/Variablen-Darstellungen-success.svg)](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/darstellungen/)
+![Kachel: Visualisierung HTML-SDK](https://img.shields.io/badge/Kachel--Visualisierung-HTML--SDK-orange.svg)
+![Farbschema: Symcon-Design, Dunkel, Hell](https://img.shields.io/badge/Farbschema-Symcon--Design_%7C_Dunkel_%7C_Hell-blueviolet.svg)
 ![Sprache: Deutsch](https://img.shields.io/badge/Sprache-Deutsch-blueviolet.svg)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-green.svg)](LICENSE)
 [![Schnittstelle: HCU Connect API (lokal)](https://img.shields.io/badge/Schnittstelle-HCU_Connect_API_(lokal)-lightgrey.svg)](https://github.com/homematicip/connect-api)
@@ -21,7 +23,7 @@ Schaltet Homematic-IP-Türschlossantriebe (HmIP-DLD) über die Home Control Unit
 | :---- | :-- | :------ |
 | [HmIP Türschloss HCU](HCU/README.md) | I/O | Ein Zugang zur HCU für alle Schlösser (Anmeldung, Abfrage, Befehle) |
 | [HmIP Türschloss Konfigurator](Konfigurator/README.md) | Konfigurator | Listet die Schlösser der HCU und legt je Schloss eine Instanz an |
-| [HmIP Türschloss](Tuerschloss/README.md) | Gerät | Ein Türschloss: Zustand, Motor, Freigabe, Bedienung mit der PIN seines Zugangsprofils |
+| [HmIP Türschloss](Tuerschloss/README.md) | Gerät | Ein Türschloss mit eigener Kachel: Zustand, Motor, Freigabe, Bedienung mit der PIN seines Zugangsprofils |
 
 ## Warum ein eigenes Modul?
 
@@ -67,6 +69,7 @@ Bis 1.0 bediente eine Instanz alle Schlösser. Nach dem Update zieht sie beim er
 
 | Version | Build | Datum | Beschreibung |
 |---|---|---|---|
+| 2.1 | 3 | 05.11.2026 | Eigene Kachel für jedes Türschloss: Tür mit Riegel und Statusring, Zustand mit „seit …“, Tasten mit Rückmeldung, „Öffnen“ mit zweitem Tipp, Hinweise bei Blockade/fehlender PIN; Farbschema Symcon-Design/Dunkel/Hell; Motor-Variable zeigt wieder Text statt Zahl |
 | 2.0 | 2 | 05.11.2026 | Je Türschloss eine Instanz: neuer Zugang „HmIP Türschloss HCU“ (eine Abfrage für alle Schlösser) und Konfigurator; PIN je Instanz; automatischer Umzug aus 1.0 mit Übernahme des Zugangs und der Variablen (gleiche Objekt-IDs); Befehle ohne Schlossnamen |
 | 1.0 | 1 | 02.11.2026 | Erste Version: eigener Zugang zur HCU (Connect API), alle Türschlösser mit Zustand, Motor und Freigabe; Verriegeln, Entriegeln, Öffnen mit PIN je Zugangsprofil; Zertifikat der HCU wird beim ersten Kontakt gemerkt; Tests gegen eine nachgebaute HCU |
 

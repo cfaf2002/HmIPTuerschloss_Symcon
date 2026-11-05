@@ -33,6 +33,40 @@
             "type": "CheckBox",
             "name": "OeffnenErlauben",
             "caption": "„Öffnen“ (Falle ziehen) erlauben"
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Kachel",
+            "items": [
+                {
+                    "type": "CheckBox",
+                    "name": "Kachel",
+                    "caption": "Eigene Kachel in der Visualisierung (Tür mit Schloss und Tasten)"
+                },
+                {
+                    "type": "Select",
+                    "name": "TileTheme",
+                    "caption": "Farbschema der Kachel",
+                    "options": [
+                        {
+                            "caption": "Symcon-Design – Farben der Visualisierung",
+                            "value": 0
+                        },
+                        {
+                            "caption": "Dunkel",
+                            "value": 1
+                        },
+                        {
+                            "caption": "Hell",
+                            "value": 2
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "caption": "In der Kachel braucht „Öffnen“ einen zweiten Tipp innerhalb von 3 Sekunden."
+                }
+            ]
         }
     ],
     "actions": [

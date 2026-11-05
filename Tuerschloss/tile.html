@@ -1,0 +1,448 @@
+<!--
+    Kachel für das Modul "HmIP Türschloss" (IP-Symcon HTML-SDK)
+    Copyright (c) 2026 Armin Frohwerk · MIT-Lizenz (siehe LICENSE)
+    SPDX-License-Identifier: MIT
+
+    Aufbau: Kopf (Name, Freigabe) · Tür mit Schloss, Riegel und Statusring · Zustand in Worten ·
+            drei Tasten (Verriegeln, Entriegeln, Öffnen – Öffnen braucht einen zweiten Tipp) · Fußzeile.
+    Sicherheit: Alle Werte werden per textContent gesetzt, nie als HTML. Keine externen Dateien.
+    Leistung:   Nur CSS-Übergänge an Transform/Opacity, keine Filter; Animationen ruhen, solange die
+                Kachel nicht sichtbar ist.
+-->
+<style>
+    /* ===== Hausstil cfaf2002 · Kachel-Grundlage v1 (siehe STYLEGUIDE.md) =====
+       Farbschema 0 = Symcon-Design (Farben der Visualisierung), 1 = Dunkel, 2 = Hell.
+       Modulspezifisch ist nur --brand (Akzent der festen Farbschemas). */
+    :root {
+        --brand: #1f9bd1;
+        --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --fg: var(--content-color, #eef3f7);
+        --accent: var(--accent-color, var(--brand));
+        --on-accent: #ffffff;
+        --muted: color-mix(in srgb, var(--fg) 65%, transparent);
+        --faint: color-mix(in srgb, var(--fg) 40%, transparent);
+        --line: color-mix(in srgb, var(--fg) 15%, transparent);
+        --surface: color-mix(in srgb, var(--fg) 7%, transparent);
+        --surface-hover: color-mix(in srgb, var(--fg) 12%, transparent);
+        --popup: var(--card-color, #232a33);
+        --ok: #34b36b; --warn: #e2a63b; --bad: #e5484d; --info: #4b8ef0; --off: #8796a5;
+        --radius-l: 14px; --radius: 12px; --radius-s: 8px; --pill: 999px; --gap: 8px;
+    }
+    html.theme-dark  { --fg: #eef3f7; --accent: var(--brand); --tile-bg: #1b2530; --popup: #232d39; }
+    html.theme-light { --fg: #1d2b36; --accent: var(--brand); --tile-bg: #e9eef3; --popup: #ffffff; }
+    html.theme-dark body, html.theme-light body { background: var(--tile-bg); }
+    html, body { font-family: var(--font); color: var(--fg); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+    /* ===== Ende Kachel-Grundlage ===== */
+
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+    * { box-sizing: border-box; }
+
+    #tile {
+        /* Farbe des aktuellen Zustands – alles Weitere leitet sich davon ab */
+        --state: var(--off);
+        --state-soft: color-mix(in srgb, var(--state) 22%, transparent);
+        --state-faint: color-mix(in srgb, var(--state) 10%, transparent);
+        position: relative;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+        gap: 10px;
+        width: 100%;
+        height: 100%;
+        padding: 14px 14px 12px;
+        user-select: none;
+    }
+    #tile.s-locked   { --state: var(--ok); }
+    #tile.s-unlocked { --state: var(--warn); }
+    #tile.s-open     { --state: var(--bad); }
+    #tile.s-unknown  { --state: var(--off); }
+
+    /* ---------- Kopf ---------- */
+    .head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .name { flex: 1; min-width: 0; font-size: 17px; font-weight: 650; letter-spacing: .1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chip {
+        display: inline-flex; align-items: center; gap: 6px; flex: none;
+        max-width: 55%; padding: 5px 10px; border-radius: var(--pill);
+        background: var(--surface); border: 1px solid var(--line);
+        font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .chip i { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--off); }
+    .chip.ok i { background: var(--ok); }
+    .chip.warn i { background: var(--warn); }
+    .chip.bad i { background: var(--bad); }
+    .chip span { overflow: hidden; text-overflow: ellipsis; }
+
+    /* ---------- Bühne mit Tür ---------- */
+    .stage {
+        position: relative; display: flex; align-items: center; justify-content: center; min-height: 0;
+        border-radius: var(--radius-l);
+        background:
+            radial-gradient(ellipse 55% 60% at 50% 52%, var(--state-soft), transparent 70%),
+            var(--surface);
+        border: 1px solid var(--line);
+        transition: background .5s ease;
+        overflow: hidden;
+    }
+    .stage svg { height: 100%; max-height: 230px; width: auto; max-width: 100%; padding: 12px 0 6px; overflow: visible; }
+    .frame { fill: none; stroke: var(--line); stroke-width: 6; }
+    .floor { stroke: var(--line); stroke-width: 2; stroke-linecap: round; }
+    .gap { fill: var(--state); opacity: 0; transition: opacity .5s ease; }
+    .leaf {
+        transform-box: fill-box; transform-origin: left center;
+        transition: transform .7s cubic-bezier(.3, .7, .2, 1);
+    }
+    .leaf-body { fill: color-mix(in srgb, var(--fg) 13%, transparent); stroke: color-mix(in srgb, var(--fg) 26%, transparent); stroke-width: 1.5; }
+    .panel { fill: none; stroke: color-mix(in srgb, var(--fg) 14%, transparent); stroke-width: 1.5; }
+    .handle { fill: none; stroke: var(--muted); stroke-width: 5; stroke-linecap: round; }
+    .bolt { fill: var(--state); transition: transform .6s cubic-bezier(.3, .7, .2, 1), opacity .4s ease, fill .4s ease; }
+    .ring-bg { fill: none; stroke: var(--state-faint); stroke-width: 5; }
+    .ring {
+        fill: none; stroke: var(--state); stroke-width: 5; stroke-linecap: round;
+        transform-box: fill-box; transform-origin: center;
+        transition: stroke .4s ease, stroke-dasharray .4s ease;
+    }
+    .cyl { fill: color-mix(in srgb, var(--fg) 10%, transparent); stroke: var(--state); stroke-width: 2.5; transition: stroke .4s ease; }
+    .key {
+        fill: var(--fg); transform-box: fill-box; transform-origin: 50% 35%;
+        transition: transform .6s cubic-bezier(.3, .7, .2, 1);
+    }
+    /* Zustände der Tür */
+    /* Riegel: verriegelt fährt er in den Rahmen, sonst steckt er (blass) im Türblatt */
+    .s-locked .bolt { transform: translateX(14px); }
+    .s-unlocked .bolt, .s-open .bolt, .s-unknown .bolt { transform: translateX(0); opacity: .35; }
+    .s-unlocked .key, .s-open .key { transform: rotate(-90deg); }
+    .s-open .leaf { transform: scaleX(.78) skewY(-3deg); }
+    .s-open .gap { opacity: .28; }
+    /* Motor läuft: Ring dreht sich gestrichelt */
+    .moving .ring { stroke-dasharray: 18 12; animation: spin 1.1s linear infinite; }
+    .jammed .ring { stroke: var(--bad); animation: pulse 1s ease-in-out infinite; }
+    .paused * { animation-play-state: paused !important; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 50% { opacity: .35; } }
+
+    /* ---------- Zustand in Worten ---------- */
+    .state { display: flex; align-items: baseline; justify-content: center; gap: 10px; flex-wrap: wrap; text-align: center; }
+    .state b { font-size: 24px; font-weight: 700; letter-spacing: .2px; color: var(--state); transition: color .4s ease; }
+    .state small { font-size: 13px; color: var(--muted); }
+    .alert {
+        display: none; padding: 8px 12px; border-radius: var(--radius-s); font-size: 13px; line-height: 1.35;
+        background: color-mix(in srgb, var(--bad) 16%, transparent); border: 1px solid color-mix(in srgb, var(--bad) 45%, transparent);
+    }
+    .alert.show { display: block; }
+    .alert.warn { background: color-mix(in srgb, var(--warn) 16%, transparent); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+
+    /* ---------- Tasten ---------- */
+    .actions { display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); gap: var(--gap); }
+    .btn {
+        --c: var(--fg);
+        position: relative; overflow: hidden;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        min-height: 46px; padding: 0 10px;
+        border-radius: var(--radius); border: 1px solid var(--line);
+        background: var(--surface); color: var(--fg);
+        font: 600 14px var(--font); cursor: pointer;
+        transition: background .25s ease, border-color .25s ease, color .25s ease, transform .1s ease;
+    }
+    .btn:hover { background: var(--surface-hover); }
+    .btn:active { transform: scale(.98); }
+    .btn svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .btn[data-v="0"] { --c: var(--ok); }
+    .btn[data-v="1"] { --c: var(--warn); }
+    .btn[data-v="2"] { --c: var(--bad); }
+    .btn.current { background: color-mix(in srgb, var(--c) 18%, transparent); border-color: color-mix(in srgb, var(--c) 55%, transparent); color: var(--c); }
+    .btn:disabled { cursor: default; opacity: .45; transform: none; }
+    .btn.current:disabled { opacity: 1; }
+    /* Öffnen: erst scharf schalten, dann ein zweiter Tipp */
+    .btn.armed { background: var(--bad); border-color: var(--bad); color: #fff; }
+    .btn.armed::after {
+        content: ""; position: absolute; left: 0; bottom: 0; height: 3px; width: 100%;
+        background: rgba(255, 255, 255, .8); transform-origin: left; animation: drain 3s linear forwards;
+    }
+    @keyframes drain { to { transform: scaleX(0); } }
+    .btn.busy svg { display: none; }
+    .btn.busy::before {
+        content: ""; width: 16px; height: 16px; flex: none; border-radius: 50%;
+        border: 2px solid color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor;
+        animation: spin .8s linear infinite;
+    }
+
+    /* ---------- Fußzeile ---------- */
+    .foot { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px; color: var(--faint); min-width: 0; }
+    .foot span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ---------- Hinweis (Fehler beim Schalten) ---------- */
+    .toast {
+        position: absolute; left: 14px; right: 14px; bottom: 12px; z-index: 2;
+        padding: 10px 12px; border-radius: var(--radius); font-size: 13px; line-height: 1.35;
+        background: var(--popup); color: var(--fg); border: 1px solid color-mix(in srgb, var(--bad) 55%, transparent);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+        opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .25s ease, transform .25s ease;
+    }
+    .toast.show { opacity: 1; transform: none; pointer-events: auto; }
+
+    /* ---------- Nicht bereit ---------- */
+    .off .stage, .off .state { opacity: .5; }
+
+    /* ---------- Kleine Kacheln ---------- */
+    #tile.compact { gap: 8px; padding: 10px; }
+    #tile.compact .stage svg { padding: 6px 0 2px; }
+    #tile.compact .state b { font-size: 19px; }
+    #tile.compact .foot { display: none; }
+    #tile.narrow .btn span { display: none; }
+    #tile.narrow .chip span { display: none; }
+    #tile.tiny { grid-template-rows: auto auto auto; align-content: space-between; }
+    #tile.tiny .stage { display: none; }
+</style>
+
+<div id="tile" class="s-unknown">
+    <div class="head">
+        <div class="name" id="name">Türschloss</div>
+        <div class="chip" id="chip"><i></i><span id="chipText">–</span></div>
+    </div>
+
+    <div class="stage" aria-hidden="true">
+        <svg viewBox="0 0 200 230">
+            <rect class="gap" x="30" y="22" width="140" height="190" rx="3"></rect>
+            <g class="leaf">
+                <rect class="leaf-body" x="30" y="22" width="140" height="190" rx="4"></rect>
+                <rect class="panel" x="46" y="38" width="108" height="66" rx="4"></rect>
+                <rect class="panel" x="46" y="120" width="108" height="76" rx="4"></rect>
+                <path class="handle" d="M134 104 h-22"></path>
+                <rect class="bolt" x="150" y="133" width="18" height="9" rx="2"></rect>
+                <circle class="ring-bg" cx="128" cy="137.5" r="17"></circle>
+                <circle class="ring" cx="128" cy="137.5" r="17"></circle>
+                <circle class="cyl" cx="128" cy="137.5" r="10"></circle>
+                <path class="key" d="M128 131.5a3.2 3.2 0 1 1 0 6.4a3.2 3.2 0 1 1 0-6.4zM126.4 136.5h3.2l1 7h-5.2z"></path>
+            </g>
+            <rect class="frame" x="27" y="19" width="146" height="196" rx="5"></rect>
+            <path class="floor" d="M8 219 H192"></path>
+        </svg>
+    </div>
+
+    <div>
+        <div class="state"><b id="stateText">–</b><small id="stateSub"></small></div>
+        <div class="alert" id="alert"></div>
+    </div>
+
+    <div class="actions" id="actions">
+        <button class="btn" data-v="0" type="button">
+            <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+            <span>Verriegeln</span>
+        </button>
+        <button class="btn" data-v="1" type="button">
+            <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 7.5-1.9"></path></svg>
+            <span>Entriegeln</span>
+        </button>
+        <button class="btn" data-v="2" type="button">
+            <svg viewBox="0 0 24 24"><path d="M4 21h16"></path><path d="M6 21V4h9v17"></path><path d="M15 6l4 1.5V21"></path><path d="M12 13h.01"></path></svg>
+            <span>Öffnen</span>
+        </button>
+    </div>
+
+    <div class="foot"><span id="footLeft"></span><span id="footRight"></span></div>
+    <div class="toast" id="toast" role="alert"></div>
+</div>
+
+<script>
+    // Hausstil: Farbschema der Kachel (0 = Symcon-Design, 1 = Dunkel, 2 = Hell)
+    function applyTheme(theme) {
+        var root = document.documentElement;
+        root.classList.toggle('theme-dark', theme === 1);
+        root.classList.toggle('theme-light', theme === 2);
+    }
+
+    (function () {
+        'use strict';
+
+        var $ = function (id) { return document.getElementById(id); };
+        var tile = $('tile');
+        var buttons = Array.prototype.slice.call(document.querySelectorAll('.btn'));
+        var data = {};
+        var offset = 0;              // Serverzeit minus Tablet-Zeit (Sekunden)
+        var pending = null;          // { v: Zielzustand, until: Zeitpunkt }
+        var armedTimer = 0, pendingTimer = 0, toastTimer = 0, tick = 0;
+        var seenMessage = 0;
+        var sizeClass = '';
+        var paused = false;
+
+        var STATES = [
+            { cls: 's-locked', text: 'Verriegelt' },
+            { cls: 's-unlocked', text: 'Entriegelt' },
+            { cls: 's-open', text: 'Offen' }
+        ];
+        var MOTOR = ['', 'Motor öffnet …', 'Motor schließt …', 'Riegel blockiert'];
+
+        function send(ident, value) {
+            if (typeof window.requestAction === 'function') {
+                window.requestAction(ident, value);
+            }
+        }
+        function now() { return Math.floor(Date.now() / 1000) + offset; }
+        function two(n) { return (n < 10 ? '0' : '') + n; }
+        function clock(ts) {
+            var d = new Date((ts - offset) * 1000);
+            return two(d.getHours()) + ':' + two(d.getMinutes());
+        }
+        function since(ts) {
+            if (!ts) { return ''; }
+            var diff = now() - ts;
+            if (diff < 60) { return 'gerade eben'; }
+            if (diff < 3600) { return 'seit ' + Math.floor(diff / 60) + ' Min.'; }
+            var d = new Date((ts - offset) * 1000), today = new Date((now() - offset) * 1000);
+            if (d.toDateString() === today.toDateString()) { return 'seit ' + clock(ts) + ' Uhr'; }
+            return 'seit ' + two(d.getDate()) + '.' + two(d.getMonth() + 1) + '. ' + clock(ts);
+        }
+
+        function disarm() {
+            clearTimeout(armedTimer);
+            buttons[2].classList.remove('armed');
+            buttons[2].querySelector('span').textContent = 'Öffnen';
+        }
+
+        function toast(text) {
+            var el = $('toast');
+            el.textContent = text;
+            el.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(function () { el.classList.remove('show'); }, 6000);
+        }
+
+        function chip() {
+            var el = $('chip'), cls = '', text;
+            if (!data.ready) {
+                cls = 'bad'; text = data.statusText || 'Nicht bereit';
+            } else if (data.release === 'ok' && data.pin) {
+                cls = 'ok'; text = data.profile ? 'Freigegeben · ' + data.profile : 'Freigegeben';
+            } else if (data.release === 'ok' || data.release === 'nopin') {
+                cls = 'warn'; text = 'PIN fehlt';
+            } else if (data.release === 'none') {
+                cls = 'bad'; text = 'Nicht freigegeben';
+            } else {
+                text = 'Freigabe unbekannt';
+            }
+            el.className = 'chip ' + cls;
+            $('chipText').textContent = text;
+            el.title = data.releaseText || text;
+        }
+
+        function render() {
+            if (typeof data.theme === 'number') { applyTheme(data.theme); }
+            var v = (typeof data.state === 'number' && STATES[data.state]) ? data.state : -1;
+            var motor = typeof data.motor === 'number' ? data.motor : 0;
+
+            // Befehl abgeschlossen, sobald der Zustand passt und der Motor steht (oder blockiert)
+            if (pending && ((v === pending.v && motor !== 1 && motor !== 2) || motor === 3 || now() > pending.until)) {
+                pending = null;
+            }
+
+            tile.className = (v >= 0 ? STATES[v].cls : 's-unknown')
+                + (motor === 1 || motor === 2 || pending ? ' moving' : '')
+                + (motor === 3 ? ' jammed' : '')
+                + (data.ready ? '' : ' off')
+                + (paused ? ' paused' : '')
+                + ' ' + sizeClass;
+            $('name').textContent = data.name || 'Türschloss';
+            $('stateText').textContent = v >= 0 ? STATES[v].text : 'Unbekannt';
+            $('stateSub').textContent = pending ? 'wird ausgeführt …' : (motor ? MOTOR[motor] : since(data.since));
+            chip();
+
+            var alert = $('alert'), msg = '';
+            alert.className = 'alert';
+            if (motor === 3) {
+                msg = 'Der Riegel ist blockiert. Tür prüfen und erneut versuchen.';
+                alert.className = 'alert show';
+            } else if (data.ready && data.release === 'none') {
+                msg = 'In der Homematic-IP-App „Symcon Türschloss“ dem Zugangsprofil dieses Schlosses hinzufügen.';
+                alert.className = 'alert warn show';
+            } else if (data.ready && !data.pin) {
+                msg = 'In der Instanz die PIN des Zugangsprofils eintragen.';
+                alert.className = 'alert warn show';
+            }
+            alert.textContent = msg;
+
+            var allowOpen = data.allowOpen !== false;
+            $('actions').style.setProperty('--n', allowOpen ? 3 : 2);
+            buttons[2].style.display = allowOpen ? '' : 'none';
+            var canSend = !!(data.ready && data.pin);
+            buttons.forEach(function (b) {
+                var bv = +b.getAttribute('data-v');
+                b.classList.toggle('current', bv === v && !pending);
+                b.classList.toggle('busy', !!pending && pending.v === bv);
+                b.disabled = !canSend || !!pending || (bv === v && bv !== 2);
+            });
+            if (!allowOpen || !canSend || pending) { disarm(); }
+
+            $('footLeft').textContent = data.updated ? 'Abfrage ' + clock(data.updated) + ' Uhr' : '';
+            $('footRight').textContent = data.ready ? 'HCU verbunden' : (data.statusText || '');
+
+            if (data.message && data.messageTime && data.messageTime !== seenMessage) {
+                if (seenMessage !== 0 || now() - data.messageTime < 30) { toast(data.message); }
+                seenMessage = data.messageTime;
+                pending = null;
+            }
+        }
+
+        buttons.forEach(function (b) {
+            b.addEventListener('click', function () {
+                var v = +b.getAttribute('data-v');
+                if (v === 2 && !b.classList.contains('armed')) {
+                    // Sicherheit: Öffnen erst nach einem zweiten Tipp innerhalb von 3 Sekunden
+                    b.classList.add('armed');
+                    b.querySelector('span').textContent = 'Wirklich öffnen?';
+                    armedTimer = setTimeout(disarm, 3000);
+                    return;
+                }
+                disarm();
+                pending = { v: v, until: now() + 20 };
+                clearTimeout(pendingTimer);
+                pendingTimer = setTimeout(function () { pending = null; render(); }, 21000);
+                send('Zustand', v);
+                render();
+            });
+        });
+
+        // Größe der Kachel: kleinere Varianten
+        function layout() {
+            var w = tile.clientWidth, h = tile.clientHeight;
+            sizeClass = (h < 300 || w < 260 ? 'compact ' : '') + (w < 340 ? 'narrow ' : '') + (h < 260 ? 'tiny' : '');
+            render();
+        }
+        if (window.ResizeObserver) { new ResizeObserver(layout).observe(document.body); } else { window.addEventListener('resize', layout); }
+
+        // Animationen und Uhr nur, solange die Kachel sichtbar ist
+        var inView = true;
+        function updatePause() {
+            var p = document.hidden || !inView;
+            paused = p;
+            tile.classList.toggle('paused', p);
+            clearInterval(tick);
+            if (!p) { tick = setInterval(render, 30000); }
+        }
+        document.addEventListener('visibilitychange', updatePause);
+        if (window.IntersectionObserver) {
+            new IntersectionObserver(function (entries) { inView = entries[0].isIntersecting; updatePause(); }).observe(tile);
+        }
+
+        // Wird von IP-Symcon bei UpdateVisualizationValue() aufgerufen
+        window.handleMessage = function (raw) {
+            try {
+                var d = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                if (d && typeof d === 'object') {
+                    data = d;
+                    if (typeof d.now === 'number') { offset = d.now - Math.floor(Date.now() / 1000); }
+                    render();
+                }
+            } catch (e) {
+                console.error('Türschloss-Kachel:', e);
+            }
+        };
+
+        var initial = /*INITIAL_DATA*/null;
+        if (initial) { window.handleMessage(initial); }
+        updatePause();
+        layout();
+    })();
+</script>

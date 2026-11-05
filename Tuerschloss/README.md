@@ -10,7 +10,18 @@ Ein Homematic-IP-Türschlossantrieb (HmIP-DLD) je Instanz. Die Verbindung zur HC
 | PIN des Zugangsprofils | PIN des Profils, in dem dieses Schloss und der Benutzer „Symcon Türschloss“ stehen. Darunter steht die Freigabe aus der HCU |
 | „Öffnen“ erlauben | Aus: nur Verriegeln und Entriegeln, die Falle wird nie gezogen |
 
+| Eigene Kachel | Tür mit Schloss, Zustand und Tasten statt der Variablenliste (Standard: an) |
+| Farbschema der Kachel | Symcon-Design (Farben der Visualisierung), Dunkel oder Hell |
+
 Buttons: **Jetzt abfragen**, **Verriegeln**, **Entriegeln**.
+
+## Kachel
+
+- Tür mit Riegel und Ring um den Schließzylinder: grün verriegelt, gelb entriegelt, rot offen (die Tür steht dann einen Spalt auf). Läuft der Motor, dreht sich der Ring.
+- Darunter der Zustand in Worten mit „seit …“, oben rechts die Freigabe (z. B. „Freigegeben · Treppenhaus“ oder „PIN fehlt“).
+- Drei Tasten: Verriegeln, Entriegeln, Öffnen. **Öffnen braucht einen zweiten Tipp innerhalb von 3 Sekunden.** Nach dem Tippen dreht sich ein Kreis, bis die HCU den neuen Zustand meldet.
+- Klappt ein Befehl nicht (PIN falsch, HCU weg), erscheint der Grund unten in der Kachel; ein blockierter Riegel wird rot hervorgehoben.
+- Passt sich der Größe an: kleine Kacheln zeigen nur Zustand und Tasten.
 
 ## Variablen
 

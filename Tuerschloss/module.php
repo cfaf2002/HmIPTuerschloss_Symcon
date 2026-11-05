@@ -35,6 +35,8 @@ class HmIPTuerschloss extends IPSModuleStrict
         $this->RegisterPropertyString('Schloss', '');
         $this->RegisterPropertyString('PIN', '');
         $this->RegisterPropertyBoolean('OeffnenErlauben', true);
+        $this->RegisterPropertyBoolean('Kachel', true);
+        $this->RegisterPropertyInteger('TileTheme', 0);
 
         // Nur für den Umzug aus Version 1.0 (nicht im Formular)
         foreach (['HinweisBestaetigt' => false, 'Aktiv' => true] as $Name => $Standard) {
@@ -51,6 +53,12 @@ class HmIPTuerschloss extends IPSModuleStrict
         }
 
         $this->RegisterAttributeString('Daten', '{}');
+        $this->RegisterAttributeString('KachelDaten', '');
+        $this->RegisterAttributeInteger('KachelAbfrage', 0);
+        $this->RegisterAttributeInteger('Seit', 0);
+        $this->RegisterAttributeInteger('Abfrage', 0);
+        $this->RegisterAttributeString('Meldung', '');
+        $this->RegisterAttributeInteger('MeldungZeit', 0);
     }
 
     public function ApplyChanges(): void
@@ -66,15 +74,18 @@ class HmIPTuerschloss extends IPSModuleStrict
             return;
         }
 
+        $this->SetVisualizationType($this->ReadPropertyBoolean('Kachel') ? 1 : 0);
         $this->RegisterMessage($this->InstanceID, FM_CONNECT);
         $this->RegisterMessage($this->InstanceID, FM_DISCONNECT);
         $this->VariablenAnlegen();
 
         if (trim($this->ReadPropertyString('Schloss')) === '') {
-            $this->SetStatus(self::ST_KEIN_SCHLOSS);
+            $this->StatusSetzen(self::ST_KEIN_SCHLOSS);
+            $this->KachelSenden();
             return;
         }
         $this->VomZugangHolen();
+        $this->KachelSenden();
     }
 
     public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
@@ -139,6 +150,15 @@ class HmIPTuerschloss extends IPSModuleStrict
         return (string) json_encode($Form);
     }
 
+    /** HTML der Kachel mit den aktuellen Daten (wird von der Visualisierung einmal geladen) */
+    public function GetVisualizationTile(): string
+    {
+        $Html = (string) file_get_contents(__DIR__ . '/tile.html');
+        // JSON_HEX_* verhindert, dass Werte wie "</script>" das Skript der Kachel beenden
+        $Json = (string) json_encode($this->KachelDaten(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        return str_replace('/*INITIAL_DATA*/null', $Json, $Html);
+    }
+
     // ------------------------------------------------------------ Befehle (PHP)
 
     /** Zustand jetzt von der HCU holen. */
@@ -188,14 +208,10 @@ class HmIPTuerschloss extends IPSModuleStrict
     {
         $Schloss = $this->Daten();
         $Name = (string) ($Schloss['name'] ?? IPS_GetName($this->InstanceID));
-        if (!isset(DLDLogik::ZUSTAENDE[$Zustand])) {
-            return 'Ungültiger Zustand ' . $Zustand . ' (0 = verriegeln, 1 = entriegeln, 2 = öffnen)';
-        }
-        if ($Zustand === 2 && !$this->ReadPropertyBoolean('OeffnenErlauben')) {
-            return '„' . $Name . '“: Öffnen ist in den Einstellungen der Instanz ausgeschaltet.';
-        }
-        if ($Schloss === []) {
-            return '„' . $Name . '“: Kein Türschloss gewählt oder kein Zugang zur HCU verbunden (Status ' . $this->GetStatus() . ').';
+        $Fehler = $this->PruefenSchalten($Zustand, $Schloss, $Name);
+        if ($Fehler !== '') {
+            $this->Meldung($Fehler, true);
+            return $Fehler;
         }
         $Pin = trim($this->ReadPropertyString('PIN'));
         if ($Pin === '') {
@@ -203,18 +219,19 @@ class HmIPTuerschloss extends IPSModuleStrict
             $Text = $Schloss['freigabe'] === 'none'
                 ? '„' . $Name . '“: Der Benutzer „Symcon Türschloss“ gehört zu keinem Zugangsprofil dieses Schlosses. In der Homematic-IP-App unter Zutrittsberechtigungen ein Profil mit dem Schloss öffnen, „Symcon Türschloss“ hinzufügen, eine PIN vergeben und sie hier eintragen.'
                 : '„' . $Name . '“: Für Türschlösser verlangt die HCU die PIN des Zugangsprofils' . ($Schloss['profil'] !== '' ? ' „' . $Schloss['profil'] . '“' : '') . '. Bitte in der Instanz eintragen.';
-            $this->Meldung($Text);
+            $this->Meldung($Text, true);
             return $Text;
         }
         $this->SendDebug('Schalten', $Name . ' → ' . DLDLogik::ZUSTAENDE[$Zustand], 0);
         $Antwort = $this->Anfrage(['Funktion' => 'Schalten', 'Schloss' => $Schloss['id'], 'Zustand' => $Zustand, 'Pin' => $Pin]);
         if (($Antwort['Ok'] ?? false) !== true) {
             $Text = (string) ($Antwort['Fehler'] ?? '') ?: '„' . $Name . '“: Der Zugang zur HCU antwortet nicht.';
-            $this->Meldung($Text);
+            $this->Meldung($Text, true);
             return $Text;
         }
         // Gleich anzeigen, was gewünscht war; der echte Zustand kommt nach einigen Sekunden vom Zugang
         $this->Schreiben('Zustand', $Zustand);
+        $this->KachelSenden();
         return '';
     }
 
@@ -238,6 +255,7 @@ class HmIPTuerschloss extends IPSModuleStrict
         $Id = trim($this->ReadPropertyString('Schloss'));
         if ($Id === '') {
             $this->StatusSetzen(self::ST_KEIN_SCHLOSS);
+            $this->KachelSenden();
             return;
         }
         $Schloss = null;
@@ -249,15 +267,24 @@ class HmIPTuerschloss extends IPSModuleStrict
         if (!$Bereit) {
             $this->StatusSetzen(self::ST_ZUGANG);
             if ($Schloss === null) {
+                $this->KachelSenden();
                 return;
             }
         } elseif ($Schloss === null) {
             $this->DatenSetzen([]);
             $this->StatusSetzen(self::ST_NICHT_GEFUNDEN);
+            $this->KachelSenden();
             return;
         }
+        $Vorher = $this->Daten();
         $this->DatenSetzen($Schloss);
+        if ($Bereit) {
+            $this->WriteAttributeInteger('Abfrage', time());
+        }
         if ($Schloss['zustand'] !== null) {
+            if (($Vorher['zustand'] ?? null) !== $Schloss['zustand'] || $this->ReadAttributeInteger('Seit') === 0) {
+                $this->WriteAttributeInteger('Seit', time());
+            }
             $this->Schreiben('Zustand', $Schloss['zustand']);
         }
         if ($Schloss['motor'] !== null) {
@@ -268,6 +295,7 @@ class HmIPTuerschloss extends IPSModuleStrict
         if ($Bereit) {
             $this->StatusSetzen($PinDa ? self::ST_AKTIV : self::ST_PIN);
         }
+        $this->KachelSenden();
     }
 
     private function VariablenAnlegen(): void
@@ -280,8 +308,9 @@ class HmIPTuerschloss extends IPSModuleStrict
             $Optionen[] = ['Value' => 2, 'Caption' => 'Öffnen', 'IconActive' => true, 'IconValue' => 'door-open', 'Color' => 0xE5484D];
         }
         $Motor = [];
-        foreach (['Steht', 'Öffnet', 'Schließt', 'Blockiert'] as $Wert => $Text) {
-            $Motor[] = ['Value' => $Wert, 'Caption' => $Text, 'IconActive' => false, 'IconValue' => '', 'ColorActive' => $Wert === 3, 'ColorValue' => $Wert === 3 ? 0xE5484D : -1];
+        // Jede Option mit Symbol und Farbe – sonst zeigt die Visualisierung nur die Zahl
+        foreach ([['Steht', 'circle-pause', 0x8796A5], ['Öffnet', 'arrow-right-from-bracket', 0xE2A63B], ['Schließt', 'arrow-right-to-bracket', 0x34B36B], ['Blockiert', 'triangle-exclamation', 0xE5484D]] as $Wert => [$Text, $Icon, $Farbe]) {
+            $Motor[] = ['Value' => $Wert, 'Caption' => $Text, 'IconActive' => true, 'IconValue' => $Icon, 'ColorActive' => true, 'ColorValue' => $Farbe];
         }
         $this->MaintainVariable('Zustand', 'Zustand', VARIABLETYPE_INTEGER, [
             'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
@@ -481,10 +510,83 @@ class HmIPTuerschloss extends IPSModuleStrict
         }
     }
 
-    /** Ins Meldungsfenster (ohne PIN) */
-    private function Meldung(string $Text): void
+    /** Ins Meldungsfenster (ohne PIN), auf Wunsch auch als Hinweis in der Kachel */
+    private function Meldung(string $Text, bool $Kachel = false): void
     {
         $this->LogMessage($Text, KL_WARNING);
         $this->SendDebug('Meldung', $Text, 0);
+        if ($Kachel) {
+            $this->WriteAttributeString('Meldung', $Text);
+            $this->WriteAttributeInteger('MeldungZeit', time());
+            $this->KachelSenden();
+        }
     }
+
+    /** Gründe, warum gar nicht erst gesendet wird (ohne Zugriff auf die HCU) */
+    private function PruefenSchalten(int $Zustand, array $Schloss, string $Name): string
+    {
+        if (!isset(DLDLogik::ZUSTAENDE[$Zustand])) {
+            return 'Ungültiger Zustand ' . $Zustand . ' (0 = verriegeln, 1 = entriegeln, 2 = öffnen)';
+        }
+        if ($Zustand === 2 && !$this->ReadPropertyBoolean('OeffnenErlauben')) {
+            return '„' . $Name . '“: Öffnen ist in den Einstellungen der Instanz ausgeschaltet.';
+        }
+        if ($Schloss === []) {
+            return '„' . $Name . '“: Kein Türschloss gewählt oder kein Zugang zur HCU verbunden (Status ' . $this->GetStatus() . ').';
+        }
+        return '';
+    }
+
+    private function KachelDaten(): array
+    {
+        $Schloss = $this->Daten();
+        $Status = $this->GetStatus();
+        $Texte = [self::ST_AKTIV => 'Bereit', self::ST_KEIN_SCHLOSS => 'Kein Türschloss gewählt', self::ST_NICHT_GEFUNDEN => 'Schloss nicht gefunden',
+            self::ST_ZUGANG => 'HCU nicht erreichbar', self::ST_PIN => 'PIN fehlt'];
+        $PinDa = trim($this->ReadPropertyString('PIN')) !== '';
+        return [
+            'theme' => $this->ReadPropertyInteger('TileTheme'),
+            'name' => IPS_GetName($this->InstanceID),
+            'state' => $this->Wert('Zustand') ?? ($Schloss['zustand'] ?? null),
+            'motor' => $this->Wert('Motor') ?? ($Schloss['motor'] ?? null),
+            'release' => (string) ($Schloss['freigabe'] ?? ''),
+            'releaseText' => $Schloss === [] ? '' : DLDLogik::freigabeText($Schloss['freigabe'], $Schloss['profil'], $PinDa),
+            'profile' => (string) ($Schloss['profil'] ?? ''),
+            'pin' => $PinDa,
+            'allowOpen' => $this->ReadPropertyBoolean('OeffnenErlauben'),
+            'ready' => in_array($Status, [self::ST_AKTIV, self::ST_PIN], true) && $Schloss !== [],
+            'statusText' => $Texte[$Status] ?? 'Status ' . $Status,
+            'since' => $this->ReadAttributeInteger('Seit'),
+            'updated' => $this->ReadAttributeInteger('Abfrage'),
+            'message' => $this->ReadAttributeString('Meldung'),
+            'messageTime' => $this->ReadAttributeInteger('MeldungZeit'),
+            'now' => time(),
+        ];
+    }
+
+    /** Kacheldaten senden – nur wenn sich etwas geändert hat (Uhrzeiten zählen nicht) */
+    private function KachelSenden(): void
+    {
+        if (!$this->ReadPropertyBoolean('Kachel')) {
+            return;
+        }
+        $Daten = $this->KachelDaten();
+        $Vergleich = $Daten;
+        unset($Vergleich['now'], $Vergleich['updated']);
+        $Pruefsumme = md5((string) json_encode($Vergleich));
+        // Zeit der letzten Abfrage höchstens alle 5 Minuten nachreichen
+        if ($Pruefsumme === $this->ReadAttributeString('KachelDaten') && $Daten['updated'] - $this->ReadAttributeInteger('KachelAbfrage') < 300) {
+            return;
+        }
+        $this->WriteAttributeString('KachelDaten', $Pruefsumme);
+        $this->WriteAttributeInteger('KachelAbfrage', (int) $Daten['updated']);
+        $this->UpdateVisualizationValue((string) json_encode($Daten));
+    }
+
+    private function Wert(string $Ident): ?int
+    {
+        $Id = @$this->GetIDForIdent($Ident);
+        return ($Id === false || $Id === 0) ? null : (int) GetValue($Id);
+    }
+
 }
