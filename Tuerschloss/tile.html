@@ -3,7 +3,7 @@
     Copyright (c) 2026 Armin Frohwerk · MIT-Lizenz (siehe LICENSE)
     SPDX-License-Identifier: MIT
 
-    Aufbau: Kopf (Name, Freigabe) · Tür mit Schloss, Riegel und Statusring · Zustand in Worten ·
+    Aufbau: oben frei für Titel und Symbole der Visualisierung · Freigabe · Tür mit Schloss, Riegel und Statusring · Zustand in Worten ·
             drei Tasten (Verriegeln, Entriegeln, Öffnen – Öffnen braucht einen zweiten Tipp) · Fußzeile.
     Sicherheit: Alle Werte werden per textContent gesetzt, nie als HTML. Keine externen Dateien.
     Leistung:   Nur CSS-Übergänge an Transform/Opacity, keine Filter; Animationen ruhen, solange die
@@ -52,7 +52,8 @@
         gap: 10px;
         width: 100%;
         height: 100%;
-        padding: 14px 14px 12px;
+        /* oben Platz für Titel und Symbole der Kachel-Visualisierung (Symcon zeigt dort den Namen) */
+        padding: 50px 14px 12px;
         user-select: none;
     }
     #tile.s-locked   { --state: var(--ok); }
@@ -61,11 +62,10 @@
     #tile.s-unknown  { --state: var(--off); }
 
     /* ---------- Kopf ---------- */
-    .head { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .name { flex: 1; min-width: 0; font-size: 17px; font-weight: 650; letter-spacing: .1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .head { display: flex; align-items: center; justify-content: flex-end; min-width: 0; }
     .chip {
         display: inline-flex; align-items: center; gap: 6px; flex: none;
-        max-width: 55%; padding: 5px 10px; border-radius: var(--pill);
+        max-width: 100%; padding: 5px 10px; border-radius: var(--pill);
         background: var(--surface); border: 1px solid var(--line);
         font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
@@ -86,7 +86,7 @@
         transition: background .5s ease;
         overflow: hidden;
     }
-    .stage svg { height: 100%; max-height: 230px; width: auto; max-width: 100%; padding: 12px 0 6px; overflow: visible; }
+    .stage svg { height: 100%; max-height: 320px; width: auto; max-width: 100%; padding: 12px 0 6px; overflow: visible; }
     .frame { fill: none; stroke: var(--line); stroke-width: 6; }
     .floor { stroke: var(--line); stroke-width: 2; stroke-linecap: round; }
     .gap { fill: var(--state); opacity: 0; transition: opacity .5s ease; }
@@ -187,7 +187,7 @@
     .off .stage, .off .state { opacity: .5; }
 
     /* ---------- Kleine Kacheln ---------- */
-    #tile.compact { gap: 8px; padding: 10px; }
+    #tile.compact { gap: 8px; padding: 44px 10px 10px; }
     #tile.compact .stage svg { padding: 6px 0 2px; }
     #tile.compact .state b { font-size: 19px; }
     #tile.compact .foot { display: none; }
@@ -199,7 +199,6 @@
 
 <div id="tile" class="s-unknown">
     <div class="head">
-        <div class="name" id="name">Türschloss</div>
         <div class="chip" id="chip"><i></i><span id="chipText">–</span></div>
     </div>
 
@@ -344,7 +343,6 @@
                 + (data.ready ? '' : ' off')
                 + (paused ? ' paused' : '')
                 + ' ' + sizeClass;
-            $('name').textContent = data.name || 'Türschloss';
             $('stateText').textContent = v >= 0 ? STATES[v].text : 'Unbekannt';
             $('stateSub').textContent = pending ? 'wird ausgeführt …' : (motor ? MOTOR[motor] : since(data.since));
             chip();

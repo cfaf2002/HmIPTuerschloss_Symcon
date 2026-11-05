@@ -2,7 +2,7 @@
 
 [![IP-Symcon ab 8.1](https://img.shields.io/badge/IP--Symcon-ab_8.1-0b6fb3.svg)](https://www.symcon.de)
 [![Optimiert für Symcon 9.0](https://img.shields.io/badge/optimiert_f%C3%BCr-Symcon_9.0-0b6fb3.svg)](https://www.symcon.de/de/service/dokumentation/installation/migrationen/v81-v90-q1-2026/)
-[![Modul-Version 2.1 (Build 3)](https://img.shields.io/badge/Modul--Version-2.1_(Build_3)-informational.svg)](library.json)
+[![Modul-Version 2.1 (Build 4)](https://img.shields.io/badge/Modul--Version-2.1_(Build_4)-informational.svg)](library.json)
 [![Tests](https://github.com/cfaf2002/HmIPTuerschloss_Symcon/actions/workflows/tests.yml/badge.svg)](https://github.com/cfaf2002/HmIPTuerschloss_Symcon/actions/workflows/tests.yml)
 [![PHP 8.3 und 8.5](https://img.shields.io/badge/PHP-8.3_%7C_8.5-777bb4.svg?logo=php&logoColor=white)](https://www.php.net)
 [![SDK: IPSModuleStrict](https://img.shields.io/badge/SDK-IPSModuleStrict-success.svg)](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/module/)
@@ -69,6 +69,7 @@ Bis 1.0 bediente eine Instanz alle Schlösser. Nach dem Update zieht sie beim er
 
 | Version | Build | Datum | Beschreibung |
 |---|---|---|---|
+| 2.1 | 4 | 05.11.2026 | Kachel: Name nicht mehr doppelt (zeigt die Visualisierung selbst), oben Platz für Titel und Vergrößern-Symbol, Tür größer |
 | 2.1 | 3 | 05.11.2026 | Eigene Kachel für jedes Türschloss: Tür mit Riegel und Statusring, Zustand mit „seit …“, Tasten mit Rückmeldung, „Öffnen“ mit zweitem Tipp, Hinweise bei Blockade/fehlender PIN; Farbschema Symcon-Design/Dunkel/Hell; Motor-Variable zeigt wieder Text statt Zahl |
 | 2.0 | 2 | 05.11.2026 | Je Türschloss eine Instanz: neuer Zugang „HmIP Türschloss HCU“ (eine Abfrage für alle Schlösser) und Konfigurator; PIN je Instanz; automatischer Umzug aus 1.0 mit Übernahme des Zugangs und der Variablen (gleiche Objekt-IDs); Befehle ohne Schlossnamen |
 | 1.0 | 1 | 02.11.2026 | Erste Version: eigener Zugang zur HCU (Connect API), alle Türschlösser mit Zustand, Motor und Freigabe; Verriegeln, Entriegeln, Öffnen mit PIN je Zugangsprofil; Zertifikat der HCU wird beim ersten Kontakt gemerkt; Tests gegen eine nachgebaute HCU |

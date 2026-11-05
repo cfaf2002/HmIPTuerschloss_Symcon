@@ -546,7 +546,6 @@ class HmIPTuerschloss extends IPSModuleStrict
         $PinDa = trim($this->ReadPropertyString('PIN')) !== '';
         return [
             'theme' => $this->ReadPropertyInteger('TileTheme'),
-            'name' => IPS_GetName($this->InstanceID),
             'state' => $this->Wert('Zustand') ?? ($Schloss['zustand'] ?? null),
             'motor' => $this->Wert('Motor') ?? ($Schloss['motor'] ?? null),
             'release' => (string) ($Schloss['freigabe'] ?? ''),
