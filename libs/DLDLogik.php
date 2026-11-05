@@ -9,12 +9,20 @@ declare(strict_types=1);
  * - Freigabe über die Zugangsprofile (ACCESS_AUTHORIZATION_PROFILE) prüfen
  * - passende PIN je Zugangsprofil wählen
  * - Fehlercodes der HCU verständlich machen
+ * - GUIDs der Module und des Datenflusses
  *
  * Copyright (c) 2026 Armin Frohwerk · MIT-Lizenz
  * SPDX-License-Identifier: MIT
  */
 final class DLDLogik
 {
+    /** Module und Datenfluss (Zugang zur HCU ↔ Türschloss/Konfigurator) */
+    public const GUID_HCU = '{1E261F5E-40A1-4744-A69E-661E33CA2496}';
+    public const GUID_SCHLOSS = '{C1931337-4B5F-4B19-9680-20B23BBF691A}';
+    public const GUID_KONFIGURATOR = '{1EBC9F8E-094F-4551-84D7-9CB801916F1F}';
+    public const DATEN_ZUR_HCU = '{E78A3515-A873-4BEB-A2F9-8402AFCF495D}';
+    public const DATEN_VON_HCU = '{ED7D4F7F-B375-4BF9-8CA2-32B2EA73BBFC}';
+
     /** Zustände des Schlosses: Wert der Variable ↔ lockState der HCU */
     public const ZUSTAENDE = [0 => 'LOCKED', 1 => 'UNLOCKED', 2 => 'OPEN'];
 

@@ -1,0 +1,186 @@
+{
+    "elements": [
+        {
+            "type": "ExpansionPanel",
+            "caption": "Nutzungshinweis",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Das Modul nutzt die offizielle Connect API der Homematic IP Home Control Unit (HCU). Dafür muss in HCUweb der Entwicklermodus eingeschaltet sein – laut eQ-3 lässt er sich danach nicht mehr ausschalten, und eQ-3 leistet dann keinen technischen Support."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Das Modul ist kein Produkt der eQ-3 AG. Ein Türschloss zu öffnen ist sicherheitsrelevant: Zugriff auf Symcon nur für vertrauenswürdige Personen."
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "HinweisBestaetigt",
+                    "caption": "Ich habe den Hinweis gelesen und bin einverstanden"
+                }
+            ]
+        },
+        {
+            "type": "CheckBox",
+            "name": "Aktiv",
+            "caption": "Instanz aktiv"
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Verbindung zur HCU",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "ValidationTextBox",
+                    "name": "Host",
+                    "caption": "Adresse der HCU (IP oder hcu1-XXXX.local)",
+                    "width": "350px"
+                },
+                {
+                    "type": "PasswordTextBox",
+                    "name": "Aktivierungsschluessel",
+                    "caption": "Aktivierungsschlüssel (nur zum Anmelden)",
+                    "width": "350px"
+                },
+                {
+                    "type": "Label",
+                    "caption": "HCUweb → Entwicklermodus → „Connect API WebSocket freigeben“ einschalten und einen Aktivierungsschlüssel erzeugen. Er gilt nur kurz und nur einmal; nach dem Anmelden erscheint in der App der Benutzer „Symcon Türschloss“."
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Optionen",
+            "items": [
+                {
+                    "type": "NumberSpinner",
+                    "name": "Intervall",
+                    "caption": "Zustand abfragen alle (0 = nur nach Befehlen)",
+                    "suffix": "s",
+                    "minimum": 0,
+                    "maximum": 3600
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Experte",
+            "items": [
+                {
+                    "type": "NumberSpinner",
+                    "name": "PortAuth",
+                    "caption": "Port Anmeldung",
+                    "minimum": 1,
+                    "maximum": 65535
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "PortWs",
+                    "caption": "Port Connect API (WebSocket)",
+                    "minimum": 1,
+                    "maximum": 65535
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Label",
+            "name": "Anmeldeinfo",
+            "caption": ""
+        },
+        {
+            "type": "List",
+            "name": "Schlossliste",
+            "caption": "Gefundene Türschlösser",
+            "rowCount": 5,
+            "add": false,
+            "delete": false,
+            "columns": [
+                {
+                    "caption": "Name",
+                    "name": "Name",
+                    "width": "200px"
+                },
+                {
+                    "caption": "Zustand",
+                    "name": "Zustand",
+                    "width": "110px"
+                },
+                {
+                    "caption": "Freigabe für den Zugang",
+                    "name": "Freigabe",
+                    "width": "auto"
+                },
+                {
+                    "caption": "Instanz in Symcon",
+                    "name": "Instanz",
+                    "width": "230px"
+                }
+            ],
+            "values": []
+        },
+        {
+            "type": "RowLayout",
+            "items": [
+                {
+                    "type": "Button",
+                    "caption": "Jetzt abfragen",
+                    "onClick": "IPS_RequestAction($id, 'Abfragen', true);"
+                },
+                {
+                    "type": "Button",
+                    "caption": "Neu anmelden",
+                    "onClick": "IPS_RequestAction($id, 'NeuAnmelden', true);"
+                },
+                {
+                    "type": "Button",
+                    "caption": "Zertifikat neu lernen",
+                    "confirm": "Nur nötig, wenn die HCU getauscht oder zurückgesetzt wurde. Fortfahren?",
+                    "onClick": "IPS_RequestAction($id, 'ZertifikatNeu', true);"
+                }
+            ]
+        },
+        {
+            "type": "Label",
+            "caption": "Je Türschloss eine Instanz „HmIP Türschloss“ – am einfachsten über den „HmIP Türschloss Konfigurator“ anlegen. Die PIN des Zugangsprofils steht in der jeweiligen Türschloss-Instanz."
+        }
+    ],
+    "status": [
+        {
+            "code": 102,
+            "icon": "active",
+            "caption": "Verbunden"
+        },
+        {
+            "code": 104,
+            "icon": "inactive",
+            "caption": "Instanz ist deaktiviert"
+        },
+        {
+            "code": 201,
+            "icon": "inactive",
+            "caption": "Nutzungshinweis nicht bestätigt"
+        },
+        {
+            "code": 202,
+            "icon": "error",
+            "caption": "Adresse der HCU fehlt"
+        },
+        {
+            "code": 203,
+            "icon": "error",
+            "caption": "Noch nicht angemeldet – Aktivierungsschlüssel eintragen"
+        },
+        {
+            "code": 204,
+            "icon": "error",
+            "caption": "Anmeldung bei der HCU fehlgeschlagen"
+        },
+        {
+            "code": 205,
+            "icon": "error",
+            "caption": "HCU nicht erreichbar"
+        }
+    ]
+}

@@ -1,0 +1,40 @@
+{
+    "elements": [],
+    "actions": [
+        {
+            "type": "Label",
+            "name": "Hinweis",
+            "caption": ""
+        },
+        {
+            "type": "Configurator",
+            "name": "Schloesser",
+            "caption": "Türschlösser in der HCU",
+            "rowCount": 6,
+            "add": false,
+            "delete": true,
+            "sort": {
+                "column": "Name",
+                "direction": "ascending"
+            },
+            "columns": [
+                {
+                    "caption": "Name",
+                    "name": "Name",
+                    "width": "220px"
+                },
+                {
+                    "caption": "Freigabe für den Zugang",
+                    "name": "Freigabe",
+                    "width": "auto"
+                },
+                {
+                    "caption": "Kennung",
+                    "name": "Kennung",
+                    "width": "240px"
+                }
+            ],
+            "values": []
+        }
+    ]
+}

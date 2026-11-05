@@ -1,0 +1,18 @@
+{
+    "id": "{1EBC9F8E-094F-4551-84D7-9CB801916F1F}",
+    "name": "HmIP Tuerschloss Konfigurator",
+    "type": 4,
+    "vendor": "eQ-3 Homematic IP",
+    "aliases": [
+        "HmIP Türschloss Konfigurator"
+    ],
+    "parentRequirements": [
+        "{E78A3515-A873-4BEB-A2F9-8402AFCF495D}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{ED7D4F7F-B375-4BF9-8CA2-32B2EA73BBFC}"
+    ],
+    "prefix": "DLD",
+    "url": "https://github.com/cfaf2002/HmIPTuerschloss_Symcon/blob/main/Konfigurator/README.md"
+}
